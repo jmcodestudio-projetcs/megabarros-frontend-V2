@@ -1,20 +1,20 @@
-import type { ReactNode } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { clearAuth } from "../services/tokenStorage"
-import { useState } from "react"
+import type { ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { clearAuth } from "../services/tokenStorage";
+import { useState } from "react";
 
 type MainLayoutProps = {
-  children: ReactNode
-  title?: string
-}
+  children: ReactNode;
+  title?: string;
+};
 
 export default function MainLayout({ children, title }: MainLayoutProps) {
-  const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   function handleLogout() {
-    clearAuth()
-    navigate("/login")
+    clearAuth();
+    navigate("/login");
   }
 
   return (
@@ -23,7 +23,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between gap-4">
           <Link
             to="/dashboard"
-            className="text-lg sm:text-xl font-semibold hover:opacity-90"
+            className="text-2xl sm:text-3xl font-semibold tracking-wide hover:opacity-90 drop-shadow-sm"
           >
             Mega Barros Assessoria
           </Link>
@@ -81,5 +81,5 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
 
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>
-  )
+  );
 }

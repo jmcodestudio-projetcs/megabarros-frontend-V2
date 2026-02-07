@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import {
@@ -59,20 +59,20 @@ function onlyDigits(value: string) {
 }
 
 function maskCpfCnpj(value: string) {
-  const digits = onlyDigits(value).slice(0, 14)
+  const digits = onlyDigits(value).slice(0, 14);
 
   if (digits.length <= 11) {
     return digits
       .replace(/^(\d{3})(\d)/, "$1.$2")
       .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4")
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
   }
 
   return digits
     .replace(/^(\d{2})(\d)/, "$1.$2")
     .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
     .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4")
-    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
 }
 
 function maskPhone(value: string) {
@@ -136,6 +136,10 @@ export default function Corretores() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const [modal, setModal] = useState<{
     open: boolean;
     title: string;
@@ -147,6 +151,32 @@ export default function Corretores() {
     message: "",
     onConfirm: () => {},
   });
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const searchDigits = onlyDigits(searchTerm);
+
+  const filteredCorretores = corretores.filter((c) => {
+    const nameMatch = c.nomeCorretor.toLowerCase().includes(normalizedSearch);
+    const cpfMatch = searchDigits
+      ? onlyDigits(c.cpfCnpj ?? "").includes(searchDigits)
+      : false;
+    return normalizedSearch ? nameMatch || cpfMatch : true;
+  });
+
+  const sortedCorretores = [...filteredCorretores].sort((a, b) =>
+    a.nomeCorretor.localeCompare(b.nomeCorretor, "pt-BR"),
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedCorretores.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedCorretores = sortedCorretores.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   function showSuccess(msg: string) {
     setSuccess(msg);
@@ -576,293 +606,458 @@ export default function Corretores() {
       )}
 
       <div className="mt-8 bg-white rounded-2xl shadow p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold text-brand-dark">Corretores</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-brand-dark">
+              Corretores
+            </h2>
+            <span className="text-xs text-gray-500">
+              {sortedCorretores.length} resultado(s)
+            </span>
+          </div>
+
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nome ou CPF/CNPJ"
+            className="w-full sm:w-80 rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+
         {loading ? (
           <p className="mt-2 text-sm text-gray-500">Carregando...</p>
         ) : (
-          <div className="mt-4 space-y-4">
-            {corretores.map((c) => {
-              const isEditing = editId === c.idCorretor;
+          <>
+            {filteredCorretores.length === 0 ? (
+              <p className="mt-4 text-sm text-gray-500">
+                Nenhum corretor encontrado.
+              </p>
+            ) : (
+              <>
+                {/* Mobile collapse */}
+                <div className="mt-4 md:hidden space-y-3">
+                  {paginatedCorretores.map((c) => {
+                    const isEditing = editId === c.idCorretor;
 
-              return (
-                <div
-                  key={c.idCorretor}
-                  className="border rounded-lg p-4 bg-brand-gray"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h3 className="font-semibold text-brand-dark">
-                      {isEditing ? "Editar corretor" : c.nomeCorretor}
-                    </h3>
+                    return (
+                      <div
+                        key={c.idCorretor}
+                        className="border rounded-lg p-4 bg-brand-gray"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-brand-dark">
+                              {c.nomeCorretor}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {c.cpfCnpj || "-"}
+                            </p>
+                          </div>
 
-                    <div className="flex gap-2">
-                      {isEditing ? (
-                        <>
-                          <button
-                            onClick={() => salvarEdicao(c.idCorretor)}
-                            className="text-sm px-3 py-1 rounded-lg bg-brand-dark text-white disabled:opacity-70"
-                            disabled={updatingId === c.idCorretor}
-                          >
-                            {updatingId === c.idCorretor
-                              ? "Salvando..."
-                              : "💾 Salvar"}
-                          </button>
-                          <button
-                            onClick={() => setEditId(null)}
-                            className="text-sm px-3 py-1 rounded-lg border border-gray-300"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => iniciarEdicao(c)}
-                            className="text-sm px-3 py-1 rounded-lg border border-gray-300"
-                          >
-                            ✏️ Editar
-                          </button>
-                          <button
-                            onClick={() => abrirModalExcluir(c.idCorretor)}
-                            className="text-sm px-3 py-1 rounded-lg bg-red-600 text-white"
-                          >
-                            🗑️ Excluir
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                          <div className="flex gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => salvarEdicao(c.idCorretor)}
+                                  className="text-xs px-2 py-1 rounded bg-brand-dark text-white disabled:opacity-70"
+                                  disabled={updatingId === c.idCorretor}
+                                >
+                                  {updatingId === c.idCorretor
+                                    ? "Salvando..."
+                                    : "💾 Salvar"}
+                                </button>
+                                <button
+                                  onClick={() => setEditId(null)}
+                                  className="text-xs px-2 py-1 rounded border border-gray-300"
+                                >
+                                  Cancelar
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => iniciarEdicao(c)}
+                                  className="text-xs px-2 py-1 rounded border border-gray-300"
+                                >
+                                  ✏️ Editar
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    abrirModalExcluir(c.idCorretor)
+                                  }
+                                  className="text-xs px-2 py-1 rounded bg-red-600 text-white"
+                                >
+                                  🗑️ Excluir
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-                  {isEditing ? (
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          Nome
-                        </label>
-                        <input
-                          value={editForm.nomeCorretor}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              nomeCorretor: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.nomeCorretor && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.nomeCorretor}
-                          </p>
+                        {isEditing ? (
+                          <div className="mt-3 grid grid-cols-1 gap-3">
+                            <div>
+                              <label className="text-sm font-medium text-brand-dark">
+                                Nome
+                              </label>
+                              <input
+                                value={editForm.nomeCorretor}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    nomeCorretor: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium text-brand-dark">
+                                CPF/CNPJ
+                              </label>
+                              <input
+                                value={editForm.cpfCnpj ?? ""}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    cpfCnpj: maskCpfCnpj(e.target.value),
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium text-brand-dark">
+                                Email
+                              </label>
+                              <input
+                                value={editForm.email ?? ""}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium text-brand-dark">
+                                Telefone
+                              </label>
+                              <input
+                                value={editForm.telefone ?? ""}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    telefone: maskPhone(e.target.value),
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <details className="mt-3 text-sm text-gray-600">
+                            <summary className="cursor-pointer">
+                              Detalhes
+                            </summary>
+                            <div className="mt-2 grid gap-1">
+                              <span>Email: {c.email || "-"}</span>
+                              <span>Telefone: {c.telefone || "-"}</span>
+                              <span>UF: {c.uf || "-"}</span>
+                            </div>
+                          </details>
                         )}
                       </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          Corretora
-                        </label>
-                        <input
-                          value={editForm.corretora ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              corretora: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.corretora && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.corretora}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          CPF/CNPJ
-                        </label>
-                        <input
-                          value={editForm.cpfCnpj ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              cpfCnpj: maskCpfCnpj(e.target.value),
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.cpfCnpj && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.cpfCnpj}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          SUSEP PJ
-                        </label>
-                        <input
-                          value={editForm.susepPj ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              susepPj: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.susepPj && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.susepPj}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          SUSEP PF
-                        </label>
-                        <input
-                          value={editForm.susepPf ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              susepPf: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.susepPf && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.susepPf}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          Email
-                        </label>
-                        <input
-                          value={editForm.email ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              email: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.email && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.email}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          Telefone
-                        </label>
-                        <input
-                          value={editForm.telefone ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              telefone: maskPhone(e.target.value),
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                        {editErrors.telefone && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.telefone}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          UF
-                        </label>
-                        <select
-                          value={editForm.uf ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              uf: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
-                        >
-                          <option value="">Selecione</option>
-                          {UFS.map((uf) => (
-                            <option key={uf} value={uf}>
-                              {uf}
-                            </option>
-                          ))}
-                        </select>
-                        {editErrors.uf && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.uf}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-brand-dark">
-                          Data nascimento
-                        </label>
-                        <input
-                          type="date"
-                          value={editForm.dataNascimento ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              dataNascimento: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-brand-dark">
-                          Documento
-                        </label>
-                        <textarea
-                          value={editForm.doc ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              doc: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 min-h-[90px]"
-                        />
-                        {editErrors.doc && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {editErrors.doc}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 text-sm text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <span>Corretora: {c.corretora || "-"}</span>
-                      <span>Email: {c.email || "-"}</span>
-                      <span>Telefone: {c.telefone || "-"}</span>
-                      <span>CPF/CNPJ: {c.cpfCnpj || "-"}</span>
-                      <span>SUSEP PJ: {c.susepPj || "-"}</span>
-                      <span>SUSEP PF: {c.susepPf || "-"}</span>
-                      <span>UF: {c.uf || "-"}</span>
-                      <span>Doc: {c.doc || "-"}</span>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Desktop table */}
+                <div className="mt-4 hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm min-w-[1000px]">
+                    <thead className="text-left text-gray-500 border-b">
+                      <tr>
+                        <th className="py-2 pr-4">Nome</th>
+                        <th className="py-2 pr-4">Email</th>
+                        <th className="py-2 pr-4">Telefone</th>
+                        <th className="py-2 pr-4">CPF/CNPJ</th>
+                        <th className="py-2 pr-4">UF</th>
+                        <th className="py-2 pr-4">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {paginatedCorretores.map((c) => {
+                        const isEditing = editId === c.idCorretor;
+
+                        return (
+                          <Fragment key={c.idCorretor}>
+                            <tr>
+                              <td className="py-2 pr-4 font-semibold text-brand-dark">
+                                {c.nomeCorretor}
+                              </td>
+                              <td className="py-2 pr-4">{c.email || "-"}</td>
+                              <td className="py-2 pr-4">{c.telefone || "-"}</td>
+                              <td className="py-2 pr-4">{c.cpfCnpj || "-"}</td>
+                              <td className="py-2 pr-4">{c.uf || "-"}</td>
+                              <td className="py-2 pr-4">
+                                <div className="flex gap-2">
+                                  {isEditing ? (
+                                    <>
+                                      <button
+                                        onClick={() =>
+                                          salvarEdicao(c.idCorretor)
+                                        }
+                                        className="text-sm px-3 py-1 rounded-lg bg-brand-dark text-white disabled:opacity-70"
+                                        disabled={updatingId === c.idCorretor}
+                                      >
+                                        {updatingId === c.idCorretor
+                                          ? "Salvando..."
+                                          : "💾 Salvar"}
+                                      </button>
+                                      <button
+                                        onClick={() => setEditId(null)}
+                                        className="text-sm px-3 py-1 rounded-lg border border-gray-300"
+                                      >
+                                        Cancelar
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() => iniciarEdicao(c)}
+                                        className="text-sm px-3 py-1 rounded-lg border border-gray-300"
+                                      >
+                                        ✏️ Editar
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          abrirModalExcluir(c.idCorretor)
+                                        }
+                                        className="text-sm px-3 py-1 rounded-lg bg-red-600 text-white"
+                                      >
+                                        🗑️ Excluir
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+
+                            {isEditing && (
+                              <tr>
+                                <td colSpan={6} className="pb-4">
+                                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Nome
+                                      </label>
+                                      <input
+                                        value={editForm.nomeCorretor}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            nomeCorretor: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Corretora
+                                      </label>
+                                      <input
+                                        value={editForm.corretora ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            corretora: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        CPF/CNPJ
+                                      </label>
+                                      <input
+                                        value={editForm.cpfCnpj ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            cpfCnpj: maskCpfCnpj(
+                                              e.target.value,
+                                            ),
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        SUSEP PJ
+                                      </label>
+                                      <input
+                                        value={editForm.susepPj ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            susepPj: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        SUSEP PF
+                                      </label>
+                                      <input
+                                        value={editForm.susepPf ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            susepPf: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Email
+                                      </label>
+                                      <input
+                                        value={editForm.email ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            email: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Telefone
+                                      </label>
+                                      <input
+                                        value={editForm.telefone ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            telefone: maskPhone(e.target.value),
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        UF
+                                      </label>
+                                      <select
+                                        value={editForm.uf ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            uf: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
+                                      >
+                                        <option value="">Selecione</option>
+                                        {UFS.map((uf) => (
+                                          <option key={uf} value={uf}>
+                                            {uf}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <div>
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Data nascimento
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={editForm.dataNascimento ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            dataNascimento: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                                      />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                      <label className="text-sm font-medium text-brand-dark">
+                                        Documento
+                                      </label>
+                                      <textarea
+                                        value={editForm.doc ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            doc: e.target.value,
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 min-h-[90px]"
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <span className="text-gray-500">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="px-3 py-1 rounded border border-gray-300"
+                      disabled={currentPage === 1}
+                    >
+                      ← Anterior
+                    </button>
+                    <button
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className="px-3 py-1 rounded border border-gray-300"
+                      disabled={currentPage === totalPages}
+                    >
+                      Próxima →
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
 

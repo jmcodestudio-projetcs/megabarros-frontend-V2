@@ -23,7 +23,8 @@ export default function Login() {
       saveAuth(data)
       navigate("/dashboard")
     } catch (err) {
-      setError("E-mail ou senha inválidos" + err)
+      console.error("AxiosError: Request failed with status code 401", err)
+      setError("E-mail ou senha inválidos. Verifique e tente novamente.")
     } finally {
       setLoading(false)
     }

@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react"
-import MainLayout from "../layouts/MainLayout"
-import { useNavigate } from "react-router-dom"
-import { getDashboardCounts } from "../services/dashboardService"
-import seguradoraIcon from "../assets/seguradora.png"
-import corretorIcon from "../assets/segurados.png"
+import { useEffect, useState } from "react";
+import MainLayout from "../layouts/MainLayout";
+import { useNavigate } from "react-router-dom";
+import { getDashboardCounts } from "../services/dashboardService";
+import seguradoraIcon from "../assets/seguradora.png";
+import corretorIcon from "../assets/segurados.png";
+import clientesIcon from "../assets/cliente.png";
 
 type CardProps = {
-  title: string
-  value: number
-}
+  title: string;
+  value: number;
+};
 
 function StatCard({ title, value }: CardProps) {
   return (
@@ -16,36 +17,36 @@ function StatCard({ title, value }: CardProps) {
       <p className="text-sm text-gray-500">{title}</p>
       <p className="mt-2 text-2xl font-semibold text-brand-dark">{value}</p>
     </div>
-  )
+  );
 }
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [counts, setCounts] = useState({
     corretores: 0,
     clientes: 0,
     apolices: 0,
     seguradoras: 0,
-  })
+  });
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function load() {
-      setError("")
-      setLoading(true)
+      setError("");
+      setLoading(true);
       try {
-        const data = await getDashboardCounts()
-        setCounts(data)
+        const data = await getDashboardCounts();
+        setCounts(data);
       } catch (e) {
-        setError("Não foi possível carregar as métricas.")
+        setError("Não foi possível carregar as métricas.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-    load()
-  }, [])
+    load();
+  }, []);
 
   return (
     <MainLayout title="Dashboard">
@@ -75,41 +76,58 @@ export default function Dashboard() {
           Ações rápidas
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <button
-                onClick={() => navigate("/seguradoras")}
-                className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
-            >
-                <img
-                src={seguradoraIcon}
-                alt="Seguradoras"
-                className="w-12 h-12 object-contain"
-                />
-                <div>
-                <p className="text-sm text-gray-500">Cadastro</p>
-                <p className="mt-1 text-lg font-semibold text-brand-dark">
-                    Seguradora e Produto
-                </p>
-                </div>
-            </button>
+          <button
+            onClick={() => navigate("/seguradoras")}
+            className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
+          >
+            <img
+              src={seguradoraIcon}
+              alt="Seguradoras"
+              className="w-12 h-12 object-contain"
+            />
+            <div>
+              <p className="text-sm text-gray-500">Cadastro</p>
+              <p className="mt-1 text-lg font-semibold text-brand-dark">
+                Seguradora e Produto
+              </p>
+            </div>
+          </button>
 
-            <button
-                onClick={() => navigate("/corretores")}
-                className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
-            >
-                <img
-                src={corretorIcon}
-                alt="Corretores"
-                className="w-12 h-12 object-contain"
-                />
-                <div>
-                <p className="text-sm text-gray-500">Cadastro</p>
-                <p className="mt-1 text-lg font-semibold text-brand-dark">
-                    Corretores
-                </p>
-                </div>
-            </button>
+          <button
+            onClick={() => navigate("/corretores")}
+            className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
+          >
+            <img
+              src={corretorIcon}
+              alt="Corretores"
+              className="w-12 h-12 object-contain"
+            />
+            <div>
+              <p className="text-sm text-gray-500">Cadastro</p>
+              <p className="mt-1 text-lg font-semibold text-brand-dark">
+                Corretores
+              </p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate("/clientes")}
+            className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
+          >
+            <img
+              src={clientesIcon}
+              alt="Clientes"
+              className="w-12 h-12 object-contain"
+            />
+            <div>
+              <p className="text-sm text-gray-500">Cadastro</p>
+              <p className="mt-1 text-lg font-semibold text-brand-dark">
+                Clientes
+              </p>
+            </div>
+          </button>
         </div>
       </div>
     </MainLayout>
-  )
+  );
 }
