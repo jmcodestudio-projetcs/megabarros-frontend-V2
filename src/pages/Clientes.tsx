@@ -589,7 +589,7 @@ export default function Clientes() {
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-2 flex justify-end">
               <button
                 className="rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
                 disabled={isSaving}
@@ -884,64 +884,92 @@ export default function Clientes() {
                           <tr key={c.idCliente}>
                             <td className="py-2 pr-4 font-semibold text-brand-dark">
                               {isEditing ? (
-                                <input
-                                  value={editForm.nome}
-                                  onChange={(e) =>
-                                    setEditForm({
-                                      ...editForm,
-                                      nome: e.target.value,
-                                    })
-                                  }
-                                  className="w-full rounded border border-gray-300 px-2 py-1"
-                                />
+                                <div>
+                                  <input
+                                    value={editForm.nome}
+                                    onChange={(e) =>
+                                      setEditForm({
+                                        ...editForm,
+                                        nome: e.target.value,
+                                      })
+                                    }
+                                    className="w-full rounded border border-gray-300 px-2 py-1"
+                                  />
+                                  {editErrors.nome && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {editErrors.nome}
+                                    </p>
+                                  )}
+                                </div>
                               ) : (
                                 c.nome
                               )}
                             </td>
                             <td className="py-2 pr-4">
                               {isEditing ? (
-                                <input
-                                  value={editForm.cpfCnpj}
-                                  onChange={(e) =>
-                                    setEditForm({
-                                      ...editForm,
-                                      cpfCnpj: maskCpfCnpj(e.target.value),
-                                    })
-                                  }
-                                  className="w-full rounded border border-gray-300 px-2 py-1"
-                                />
+                                <div>
+                                  <input
+                                    value={editForm.cpfCnpj}
+                                    onChange={(e) =>
+                                      setEditForm({
+                                        ...editForm,
+                                        cpfCnpj: maskCpfCnpj(e.target.value),
+                                      })
+                                    }
+                                    className="w-full rounded border border-gray-300 px-2 py-1"
+                                  />
+                                  {editErrors.cpfCnpj && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {editErrors.cpfCnpj}
+                                    </p>
+                                  )}
+                                </div>
                               ) : (
                                 c.cpfCnpj
                               )}
                             </td>
                             <td className="py-2 pr-4">
                               {isEditing ? (
-                                <input
-                                  value={editForm.email}
-                                  onChange={(e) =>
-                                    setEditForm({
-                                      ...editForm,
-                                      email: e.target.value,
-                                    })
-                                  }
-                                  className="w-full rounded border border-gray-300 px-2 py-1"
-                                />
+                                <div>
+                                  <input
+                                    value={editForm.email}
+                                    onChange={(e) =>
+                                      setEditForm({
+                                        ...editForm,
+                                        email: e.target.value,
+                                      })
+                                    }
+                                    className="w-full rounded border border-gray-300 px-2 py-1"
+                                  />
+                                  {editErrors.email && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {editErrors.email}
+                                    </p>
+                                  )}
+                                </div>
                               ) : (
                                 c.email
                               )}
                             </td>
                             <td className="py-2 pr-4">
                               {isEditing ? (
-                                <input
-                                  value={editForm.telefone}
-                                  onChange={(e) =>
-                                    setEditForm({
-                                      ...editForm,
-                                      telefone: maskPhone(e.target.value),
-                                    })
-                                  }
-                                  className="w-full rounded border border-gray-300 px-2 py-1"
-                                />
+                                <div>
+                                  <input
+                                    value={editForm.telefone}
+                                    onChange={(e) =>
+                                      setEditForm({
+                                        ...editForm,
+                                        telefone: maskPhone(e.target.value),
+                                      })
+                                    }
+                                    className="w-full rounded border border-gray-300 px-2 py-1"
+                                  />
+                                  {editErrors.telefone && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {editErrors.telefone}
+                                    </p>
+                                  )}
+                                </div>
                               ) : (
                                 c.telefone
                               )}
@@ -956,6 +984,78 @@ export default function Clientes() {
                               >
                                 {c.ativo ? "Ativo" : "Inativo"}
                               </span>
+                            </td>
+                            <td className="py-2 pr-4">
+                              <div className="flex flex-wrap gap-2">
+                                {vinculados.length ? (
+                                  vinculados.map((v) => (
+                                    <span
+                                      key={v.idCorretorCliente}
+                                      className="flex items-center gap-2 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700"
+                                    >
+                                      {v.nomeCorretor}
+                                      {canLink && (
+                                        <button
+                                          onClick={() =>
+                                            handleDesvincular(
+                                              c.idCliente,
+                                              v.idCorretorCliente,
+                                            )
+                                          }
+                                          disabled={
+                                            unlinkingId === v.idCorretorCliente
+                                          }
+                                          className="text-red-600"
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-gray-500">
+                                    Nenhum vínculo
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 pr-4">
+                              {canLink ? (
+                                <div className="flex gap-2">
+                                  <select
+                                    value={
+                                      vinculoSelecionado[c.idCliente] ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      setVinculoSelecionado((prev) => ({
+                                        ...prev,
+                                        [c.idCliente]: e.target.value,
+                                      }))
+                                    }
+                                    className="rounded border border-gray-300 px-2 py-1 text-xs bg-white"
+                                  >
+                                    {corretores.map((corretor) => (
+                                      <option
+                                        key={corretor.idCorretor}
+                                        value={corretor.idCorretor}
+                                      >
+                                        {corretor.nomeCorretor}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => handleVincular(c.idCliente)}
+                                    disabled={linkingId === c.idCliente}
+                                    className="text-xs px-2 py-1 rounded bg-brand-dark text-white disabled:opacity-70"
+                                  >
+                                    {linkingId === c.idCliente
+                                      ? "Vinculando..."
+                                      : "Vincular"}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-500">—</span>
+                              )}
                             </td>
                             <td className="py-2 pr-4">
                               <div className="flex gap-2">
