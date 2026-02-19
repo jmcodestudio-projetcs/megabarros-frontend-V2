@@ -1105,18 +1105,14 @@ export default function Apolices() {
                   className={`mt-1 w-full rounded-lg border px-3 py-2 bg-white ${
                     formErrors.corretor ? "border-red-400" : "border-gray-300"
                   }`}
+                  disabled={corretoresVinculados.length === 0}
                 >
                   <option value="">Selecione</option>
-                  {corretores.map((c) => {
-                    const vinculado = corretoresVinculados.some(
-                      (v) => v.idCorretor === c.idCorretor,
-                    );
-                    return (
-                      <option key={c.idCorretor} value={c.idCorretor}>
-                        {c.nomeCorretor} {vinculado ? "• Vinculado" : ""}
-                      </option>
-                    );
-                  })}
+                  {corretoresVinculados.map((c) => (
+                    <option key={c.idCorretor} value={c.idCorretor}>
+                      {c.nomeCorretor}
+                    </option>
+                  ))}
                 </select>
                 {formErrors.corretor && (
                   <p className="text-xs text-red-600 mt-1">
