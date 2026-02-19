@@ -8,7 +8,19 @@ import {
   listarClientes,
   type ClientePayload,
   type ClienteResponse,
+  type ClienteUpdatePayload,
 } from "../services/clienteService"
+import {
+  listarCorretores,
+  listarMeusClientes,
+  type CorretorResponse,
+} from "../services/corretorService"
+import {
+  criarVinculoCorretorCliente,
+  listarCorretoresPorCliente,
+  removerVinculoCorretorCliente,
+  type CorretorClienteResponse,
+} from "../services/corretorClienteService"
 import { getAuth } from "../services/tokenStorage"
 
 const initialForm: ClientePayload = {
@@ -112,6 +124,15 @@ function isValidCpfCnpj(value: string) {
 
 export default function Clientes() {
   const [clientes, setClientes] = useState<ClienteResponse[]>([])
+  const [corretores, setCorretores] = useState<CorretorResponse[]>([])
+  const [corretoresPorCliente, setCorretoresPorCliente] = useState<
+    Record<number, CorretorClienteResponse[]>
+  >({})
+  const [vinculoSelecionado, setVinculoSelecionado] = useState<
+    Record<number, string>
+  >({})
+  const [linkingId, setLinkingId] = useState<number | null>(null)
+  const [unlinkingId, setUnlinkingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -182,21 +203,38 @@ export default function Clientes() {
   }, [searchTerm])
 
   const role = getAuth()?.role
-  const canCreate = role !== "CORRETOR"
-  const canEditAll = role !== "CORRETOR"
-  const canDeactivate = role !== "CORRETOR"
+  const isCorretor = role === "CORRETOR"
+  const canCreate = !isCorretor
+  const canEditAll = !isCorretor
+  const canDeactivate = !isCorretor
+  const canLink = !isCorretor
 
   function showSuccess(msg: string) {
     setSuccess(msg)
     setTimeout(() => setSuccess(""), 3000)
   }
 
+  async function carregarVinculos(lista: ClienteResponse[]) {
+    try {
+      const entries = await Promise.all(
+        lista.map(async (c) => [
+          c.idCliente,
+          await listarCorretoresPorCliente(c.idCliente),
+        ])
+      )
+      setCorretoresPorCliente(Object.fromEntries(entries))
+    } catch {
+      setCorretoresPorCliente({})
+    }
+  }
+
   async function carregar() {
     setError("")
     setLoading(true)
     try {
-      const data = await listarClientes()
+      const data = isCorretor ? await listarMeusClientes() : await listarClientes()
       setClientes(data)
+      await carregarVinculos(data)
     } catch {
       setError("Não foi possível carregar os clientes.")
     } finally {
@@ -206,7 +244,36 @@ export default function Clientes() {
 
   useEffect(() => {
     carregar()
-  }, [])
+  }, [isCorretor])
+
+  useEffect(() => {
+    if (!canLink) return
+
+    async function loadCorretores() {
+      try {
+        const data = await listarCorretores()
+        setCorretores(data)
+      } catch {
+        setCorretores([])
+      }
+    }
+
+    loadCorretores()
+  }, [canLink])
+
+  useEffect(() => {
+    if (!canLink || corretores.length === 0) return
+
+    setVinculoSelecionado((prev) => {
+      const next = { ...prev }
+      clientes.forEach((c) => {
+        if (!next[c.idCliente]) {
+          next[c.idCliente] = String(corretores[0].idCorretor)
+        }
+      })
+      return next
+    })
+  }, [clientes, corretores, canLink])
 
   function validateCreate(payload: ClientePayload) {
     const errors = {
@@ -254,7 +321,7 @@ export default function Clientes() {
     return errors
   }
 
-  function validateUpdate(payload: ClientePayload) {
+  function validateUpdate(payload: ClienteUpdatePayload) {
     const errors = {
       nome: "",
       cpfCnpj: "",
@@ -329,13 +396,17 @@ export default function Clientes() {
   }
 
   async function salvarEdicao(id: number) {
-    const errors = validateUpdate(editForm)
+    const payload: ClienteUpdatePayload = canEditAll
+      ? editForm
+      : { email: editForm.email, telefone: editForm.telefone }
+
+    const errors = validateUpdate(payload)
     setEditErrors(errors)
     if (Object.values(errors).some((e) => e)) return
 
     try {
       setUpdatingId(id)
-      const updated = await atualizarCliente(id, editForm)
+      const updated = await atualizarCliente(id, payload)
       setClientes((prev) =>
         prev.map((c) => (c.idCliente === id ? updated : c))
       )
@@ -345,6 +416,43 @@ export default function Clientes() {
       setError("Erro ao atualizar cliente.")
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  async function handleVincular(clienteId: number) {
+    const corretorId = Number(vinculoSelecionado[clienteId])
+    if (!corretorId) return
+
+    try {
+      setLinkingId(clienteId)
+      await criarVinculoCorretorCliente(corretorId, clienteId)
+      const updated = await listarCorretoresPorCliente(clienteId)
+      setCorretoresPorCliente((prev) => ({
+        ...prev,
+        [clienteId]: updated,
+      }))
+      showSuccess("Corretor vinculado com sucesso.")
+    } catch {
+      setError("Erro ao vincular corretor.")
+    } finally {
+      setLinkingId(null)
+    }
+  }
+
+  async function handleDesvincular(clienteId: number, vinculoId: number) {
+    try {
+      setUnlinkingId(vinculoId)
+      await removerVinculoCorretorCliente(vinculoId)
+      const updated = await listarCorretoresPorCliente(clienteId)
+      setCorretoresPorCliente((prev) => ({
+        ...prev,
+        [clienteId]: updated,
+      }))
+      showSuccess("Vínculo removido com sucesso.")
+    } catch {
+      setError("Erro ao desvincular corretor.")
+    } finally {
+      setUnlinkingId(null)
     }
   }
 
@@ -521,6 +629,7 @@ export default function Clientes() {
                 <div className="mt-4 md:hidden space-y-3">
                   {paginatedClientes.map((c) => {
                     const isEditing = editId === c.idCliente
+                    const vinculados = corretoresPorCliente[c.idCliente] ?? []
 
                     return (
                       <div
@@ -532,9 +641,7 @@ export default function Clientes() {
                             <p className="font-semibold text-brand-dark">
                               {c.nome}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              {c.cpfCnpj}
-                            </p>
+                            <p className="text-xs text-gray-500">{c.cpfCnpj}</p>
                           </div>
 
                           <div className="flex gap-2">
@@ -652,6 +759,70 @@ export default function Clientes() {
                             </div>
                           </details>
                         )}
+
+                        <div className="mt-4">
+                          <p className="text-xs font-semibold text-gray-500">
+                            Corretores vinculados
+                          </p>
+                          {vinculados.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {vinculados.map((v) => (
+                                <span
+                                  key={v.idCorretorCliente}
+                                  className="flex items-center gap-2 rounded bg-white px-2 py-1 text-xs text-gray-700 border"
+                                >
+                                  {v.nomeCorretor}
+                                  {canLink && (
+                                    <button
+                                      onClick={() =>
+                                        handleDesvincular(c.idCliente, v.idCorretorCliente)
+                                      }
+                                      disabled={unlinkingId === v.idCorretorCliente}
+                                      className="text-red-600"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Nenhum corretor vinculado.
+                            </p>
+                          )}
+
+                          {canLink && (
+                            <div className="mt-2 flex gap-2">
+                              <select
+                                value={vinculoSelecionado[c.idCliente] ?? ""}
+                                onChange={(e) =>
+                                  setVinculoSelecionado((prev) => ({
+                                    ...prev,
+                                    [c.idCliente]: e.target.value,
+                                  }))
+                                }
+                                className="flex-1 rounded border border-gray-300 px-2 py-1 text-xs bg-white"
+                              >
+                                {corretores.map((corretor) => (
+                                  <option
+                                    key={corretor.idCorretor}
+                                    value={corretor.idCorretor}
+                                  >
+                                    {corretor.nomeCorretor}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleVincular(c.idCliente)}
+                                disabled={linkingId === c.idCliente}
+                                className="text-xs px-2 py-1 rounded bg-brand-dark text-white disabled:opacity-70"
+                              >
+                                {linkingId === c.idCliente ? "Vinculando..." : "Vincular"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -659,7 +830,7 @@ export default function Clientes() {
 
                 {/* Desktop table */}
                 <div className="mt-4 hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm min-w-[900px]">
+                  <table className="w-full text-sm min-w-[1200px]">
                     <thead className="text-left text-gray-500 border-b">
                       <tr>
                         <th className="py-2 pr-4">Nome</th>
@@ -667,12 +838,15 @@ export default function Clientes() {
                         <th className="py-2 pr-4">Email</th>
                         <th className="py-2 pr-4">Telefone</th>
                         <th className="py-2 pr-4">Status</th>
+                        <th className="py-2 pr-4">Corretores</th>
+                        <th className="py-2 pr-4">Vínculo</th>
                         <th className="py-2 pr-4">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {paginatedClientes.map((c) => {
                         const isEditing = editId === c.idCliente
+                        const vinculados = corretoresPorCliente[c.idCliente] ?? []
 
                         return (
                           <tr key={c.idCliente}>
@@ -692,6 +866,74 @@ export default function Clientes() {
                               >
                                 {c.ativo ? "Ativo" : "Inativo"}
                               </span>
+                            </td>
+                            <td className="py-2 pr-4">
+                              <div className="flex flex-wrap gap-2">
+                                {vinculados.length ? (
+                                  vinculados.map((v) => (
+                                    <span
+                                      key={v.idCorretorCliente}
+                                      className="flex items-center gap-2 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700"
+                                    >
+                                      {v.nomeCorretor}
+                                      {canLink && (
+                                        <button
+                                          onClick={() =>
+                                            handleDesvincular(
+                                              c.idCliente,
+                                              v.idCorretorCliente
+                                            )
+                                          }
+                                          disabled={unlinkingId === v.idCorretorCliente}
+                                          className="text-red-600"
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-gray-500">
+                                    Nenhum vínculo
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 pr-4">
+                              {canLink ? (
+                                <div className="flex gap-2">
+                                  <select
+                                    value={vinculoSelecionado[c.idCliente] ?? ""}
+                                    onChange={(e) =>
+                                      setVinculoSelecionado((prev) => ({
+                                        ...prev,
+                                        [c.idCliente]: e.target.value,
+                                      }))
+                                    }
+                                    className="rounded border border-gray-300 px-2 py-1 text-xs bg-white"
+                                  >
+                                    {corretores.map((corretor) => (
+                                      <option
+                                        key={corretor.idCorretor}
+                                        value={corretor.idCorretor}
+                                      >
+                                        {corretor.nomeCorretor}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => handleVincular(c.idCliente)}
+                                    disabled={linkingId === c.idCliente}
+                                    className="text-xs px-2 py-1 rounded bg-brand-dark text-white disabled:opacity-70"
+                                  >
+                                    {linkingId === c.idCliente
+                                      ? "Vinculando..."
+                                      : "Vincular"}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-500">—</span>
+                              )}
                             </td>
                             <td className="py-2 pr-4">
                               <div className="flex gap-2">

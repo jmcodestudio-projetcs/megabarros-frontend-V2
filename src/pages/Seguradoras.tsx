@@ -25,7 +25,6 @@ export default function Seguradoras() {
 
   const [editId, setEditId] = useState<number | null>(null);
   const [editNome, setEditNome] = useState("");
-  const [editNomeError, setEditNomeError] = useState("");
 
   const [editProduto, setEditProduto] = useState<{
     seguradoraId: number;
@@ -44,7 +43,7 @@ export default function Seguradoras() {
 
   const [isCreatingSeg, setIsCreatingSeg] = useState(false);
   const [isCreatingProd, setIsCreatingProd] = useState(false);
-  const [updatingSegId, setUpdatingSegId] = useState<number | null>(null);
+  
   const [updatingProdId, setUpdatingProdId] = useState<number | null>(null);
   const [deletingSegId, setDeletingSegId] = useState<number | null>(null);
   const [deletingProdId, setDeletingProdId] = useState<number | null>(null);
@@ -195,17 +194,15 @@ export default function Seguradoras() {
   function iniciarEdicao(seg: SeguradoraResponse) {
     setEditId(seg.idSeguradora);
     setEditNome(seg.nomeSeguradora);
-    setEditNomeError("");
   }
 
   async function salvarEdicao(id: number) {
     if (!editNome.trim()) {
-      setEditNomeError("Informe o nome da seguradora.");
+      setError("Informe o nome da seguradora.");
       return;
     }
 
     try {
-      setUpdatingSegId(id);
       const atualizada = await atualizarSeguradora(id, editNome.trim());
       setSeguradoras((prev) =>
         prev.map((s) => (s.idSeguradora === id ? atualizada : s)),
@@ -215,8 +212,6 @@ export default function Seguradoras() {
       showSuccess("Seguradora atualizada com sucesso.");
     } catch {
       setError("Erro ao atualizar seguradora.");
-    } finally {
-      setUpdatingSegId(null);
     }
   }
 
@@ -359,12 +354,14 @@ export default function Seguradoras() {
                 </p>
               )}
             </div>
-            <button
-              className="rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
-              disabled={isCreatingSeg}
-            >
-              {isCreatingSeg ? "Salvando..." : "➕ Cadastrar seguradora"}
-            </button>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="w-full sm:w-auto sm:min-w-[220px] rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
+                disabled={isCreatingSeg}
+              >
+                {isCreatingSeg ? "Salvando..." : "➕ Cadastrar seguradora"}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -442,12 +439,14 @@ export default function Seguradoras() {
               )}
             </div>
 
-            <button
-              className="rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
-              disabled={isCreatingProd}
-            >
-              {isCreatingProd ? "Salvando..." : "➕ Cadastrar produto"}
-            </button>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="w-full sm:w-auto sm:min-w-[220px] rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
+                disabled={isCreatingProd}
+              >
+                {isCreatingProd ? "Salvando..." : "➕ Cadastrar produto"}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -651,8 +650,9 @@ export default function Seguradoras() {
                     <thead className="text-left text-gray-500 border-b">
                       <tr>
                         <th className="py-2 pr-4">Seguradora</th>
+                        <th className="py-2 pr-4">Qtd. Produtos</th>
                         <th className="py-2 pr-4">Produtos</th>
-                        <th className="py-2 pr-4">Ações</th>
+                        <th className="py-2 pr-4">Ações Seguradora</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -671,9 +671,114 @@ export default function Seguradoras() {
                               </span>
                             )}
                           </td>
+
                           <td className="py-2 pr-4 text-gray-600">
                             {s.produtos?.length ?? 0}
                           </td>
+
+                          <td className="py-2 pr-4 text-gray-600">
+                            {s.produtos?.length ? (
+                              <ul className="space-y-2">
+                                {s.produtos.map((p) => {
+                                  const isEditing =
+                                    editProduto?.idProduto === p.idProduto &&
+                                    editProduto?.seguradoraId ===
+                                      s.idSeguradora;
+
+                                  return (
+                                    <li
+                                      key={p.idProduto}
+                                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white rounded-md px-3 py-2 border"
+                                    >
+                                      {isEditing ? (
+                                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                          <input
+                                            value={editProdutoNome}
+                                            onChange={(e) =>
+                                              setEditProdutoNome(e.target.value)
+                                            }
+                                            className="w-full sm:max-w-xs rounded border border-gray-300 px-2 py-1"
+                                          />
+                                          <input
+                                            value={editProdutoTipo}
+                                            onChange={(e) =>
+                                              setEditProdutoTipo(e.target.value)
+                                            }
+                                            className="w-full sm:max-w-xs rounded border border-gray-300 px-2 py-1"
+                                          />
+                                          {editProdutoError && (
+                                            <p className="text-xs text-red-600">
+                                              {editProdutoError}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span>
+                                          {p.nomeProduto} — {p.tipoProduto}
+                                        </span>
+                                      )}
+
+                                      <div className="flex gap-2">
+                                        {isEditing ? (
+                                          <>
+                                            <button
+                                              onClick={salvarEdicaoProduto}
+                                              className="text-xs px-2 py-1 rounded bg-brand-dark text-white disabled:opacity-70"
+                                              disabled={
+                                                updatingProdId === p.idProduto
+                                              }
+                                            >
+                                              {updatingProdId === p.idProduto
+                                                ? "Salvando..."
+                                                : "💾 Salvar"}
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                setEditProduto(null)
+                                              }
+                                              className="text-xs px-2 py-1 rounded border border-gray-300"
+                                            >
+                                              Cancelar
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                iniciarEdicaoProduto(
+                                                  s.idSeguradora,
+                                                  p.idProduto,
+                                                  p.nomeProduto,
+                                                  p.tipoProduto,
+                                                )
+                                              }
+                                              className="text-xs px-2 py-1 rounded border border-gray-300"
+                                            >
+                                              ✏️ Editar
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                abrirModalProduto(
+                                                  p.idProduto,
+                                                  s.idSeguradora,
+                                                )
+                                              }
+                                              className="text-xs px-2 py-1 rounded bg-red-50 text-red-600"
+                                            >
+                                              🗑️ Excluir
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            ) : (
+                              <span>Sem produtos</span>
+                            )}
+                          </td>
+
                           <td className="py-2 pr-4">
                             <div className="flex gap-2">
                               {editId === s.idSeguradora ? (

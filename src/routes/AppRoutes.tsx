@@ -5,6 +5,7 @@ import ProtectedRoute from "./ProtectedRoute"
 import Seguradoras from "../pages/Seguradoras"
 import Corretores from "../pages/Corretores"
 import Clientes from "../pages/Clientes"
+import Apolices from "../pages/Apolices"
 
 export default function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export default function AppRoutes() {
         <Route path="/seguradoras" element={<Seguradoras />} />
         <Route path="/corretores" element={<Corretores />} />
         <Route path="/clientes" element={<Clientes />} />
+        <Route path="/apolices" element={<Apolices />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/login" replace />} />

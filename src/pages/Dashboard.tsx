@@ -126,6 +126,20 @@ export default function Dashboard() {
               </p>
             </div>
           </button>
+          <button
+            onClick={() => navigate("/apolices")}
+            className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
+          >
+            <div className="w-12 h-12 flex items-center justify-center text-3xl">
+              📄
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Cadastro</p>
+              <p className="mt-1 text-lg font-semibold text-brand-dark">
+                Apólices
+              </p>
+            </div>
+          </button>
         </div>
       </div>
     </MainLayout>

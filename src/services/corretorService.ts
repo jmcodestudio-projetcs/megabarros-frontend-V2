@@ -1,4 +1,5 @@
 import { api } from "./api"
+import type { ClienteResponse } from "./clienteService"
 
 export type CorretorResponse = {
   idCorretor: number
@@ -32,6 +33,11 @@ export type CorretorPayload = {
 
 export async function listarCorretores() {
   const { data } = await api.get<CorretorResponse[]>("/api/corretores")
+  return data
+}
+
+export async function listarMeusClientes() {
+  const { data } = await api.get<ClienteResponse[]>("/api/corretores/me/clientes")
   return data
 }
 

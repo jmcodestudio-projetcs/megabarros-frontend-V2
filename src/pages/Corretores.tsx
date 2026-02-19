@@ -120,17 +120,6 @@ export default function Corretores() {
 
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<CorretorPayload>(initialForm);
-  const [editErrors, setEditErrors] = useState({
-    nomeCorretor: "",
-    corretora: "",
-    cpfCnpj: "",
-    susepPj: "",
-    susepPf: "",
-    email: "",
-    telefone: "",
-    uf: "",
-    doc: "",
-  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -315,32 +304,11 @@ export default function Corretores() {
       dataNascimento: c.dataNascimento ?? "",
       doc: c.doc ?? "",
     });
-    setEditErrors({
-      nomeCorretor: "",
-      corretora: "",
-      cpfCnpj: "",
-      susepPj: "",
-      susepPf: "",
-      email: "",
-      telefone: "",
-      uf: "",
-      doc: "",
-    });
   }
 
   async function salvarEdicao(id: number) {
     const errors = validateForm(editForm);
-    setEditErrors({
-      nomeCorretor: errors.nomeCorretor,
-      corretora: errors.corretora,
-      cpfCnpj: errors.cpfCnpj,
-      susepPj: errors.susepPj,
-      susepPf: errors.susepPf,
-      email: errors.email,
-      telefone: errors.telefone,
-      uf: errors.uf,
-      doc: errors.doc,
-    });
+
     if (Object.values(errors).some((e) => e)) return;
 
     try {
@@ -582,9 +550,9 @@ export default function Corretores() {
             )}
           </div>
 
-          <div>
+          <div className="md:col-span-2 mt-4 flex justify-end">
             <button
-              className="rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
+              className="w-full sm:w-auto sm:min-w-[220px] rounded-lg bg-brand-dark text-white px-4 py-2 hover:bg-brand-light transition disabled:opacity-70"
               disabled={isSaving}
             >
               {isSaving ? "Salvando..." : "➕ Cadastrar corretor"}
