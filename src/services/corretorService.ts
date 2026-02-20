@@ -41,6 +41,11 @@ export async function listarMeusClientes() {
   return data
 }
 
+export async function buscarMeuCorretor() {
+  const { data } = await api.get<CorretorResponse>("/api/corretores/me")
+  return data
+}
+
 export async function criarCorretor(payload: CorretorPayload) {
   const { data } = await api.post<CorretorResponse>("/api/corretores", payload)
   return data

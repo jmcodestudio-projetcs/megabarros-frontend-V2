@@ -1,32 +1,32 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import AuthLayout from "../layouts/AuthLayout"
-import Input from "../components/ui/Input"
-import Button from "../components/ui/Button"
-import { login } from "../services/authService"
-import { saveAuth } from "../services/tokenStorage"
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import AuthLayout from "../layouts/AuthLayout";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import { login } from "../services/authService";
+import { saveAuth } from "../services/tokenStorage";
 
 export default function Login() {
-  const [email, setEmail] = useState("")
-  const [senha, setSenha] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      const data = await login(email, senha)
-      saveAuth(data)
-      navigate("/dashboard")
+      const data = await login(email, senha);
+      saveAuth(data);
+      navigate(data.role === "corretor" ? "/corretor/apolices" : "/dashboard");
     } catch (err) {
-      console.error("AxiosError: Request failed with status code 401", err)
-      setError("E-mail ou senha inválidos. Verifique e tente novamente.")
+      console.error("AxiosError: Request failed with status code 401", err);
+      setError("E-mail ou senha inválidos. Verifique e tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -68,5 +68,5 @@ export default function Login() {
         </div>
       </form>
     </AuthLayout>
-  )
+  );
 }
