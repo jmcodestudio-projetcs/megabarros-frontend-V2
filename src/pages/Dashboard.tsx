@@ -5,6 +5,10 @@ import { getDashboardCounts } from "../services/dashboardService";
 import seguradoraIcon from "../assets/seguradora.png";
 import corretorIcon from "../assets/segurados.png";
 import clientesIcon from "../assets/cliente.png";
+import { getAuth } from "../services/tokenStorage";
+
+const role = getAuth()?.role?.toUpperCase();
+const isAdmin = role === "ADMIN";
 
 type CardProps = {
   title: string;
@@ -140,6 +144,19 @@ export default function Dashboard() {
               </p>
             </div>
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/usuarios")}
+              className="bg-white rounded-xl shadow p-5 border border-gray-100 text-left hover:border-brand-light transition flex gap-4 items-center"
+            >
+              <div>
+                <p className="text-sm text-gray-500">Cadastro</p>
+                <p className="mt-1 text-lg font-semibold text-brand-dark">
+                  Usuários
+                </p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </MainLayout>

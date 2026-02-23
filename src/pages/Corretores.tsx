@@ -9,6 +9,12 @@ import {
   type CorretorPayload,
   type CorretorResponse,
 } from "../services/corretorService";
+import {
+  listarUsuarios,
+  type UsuarioResponse,
+} from "../services/usuarioService"
+
+
 
 const UFS = [
   "AC",
@@ -348,6 +354,31 @@ export default function Corretores() {
     });
   }
 
+  const [usuarios, setUsuarios] = useState<UsuarioResponse[]>([])
+
+  useEffect(() => {
+    async function loadUsuarios() {
+      try {
+        const data = await listarUsuarios()
+        setUsuarios(data.filter((u) => u.perfil === "CORRETOR"))
+      } catch {
+        setUsuarios([])
+      }
+    }
+
+    loadUsuarios()
+  }, [])
+
+  const usuariosVinculados = new Set(
+  corretores.map((c) => c.idUsuario).filter(Boolean) as number[],
+  )
+
+  function getUsuariosDisponiveis(currentId?: number | null) {
+    return usuarios.filter(
+      (u) => !usuariosVinculados.has(u.idUsuario) || u.idUsuario === currentId,
+    )
+  }
+
   return (
     <MainLayout title="Corretores">
       <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
@@ -357,27 +388,36 @@ export default function Corretores() {
           className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
           onSubmit={handleCriar}
         >
-          <div>
-            <label className="text-sm font-medium text-brand-dark">
-              ID do usuário
-            </label>
-            <input
-              value={form.idUsuario ?? ""}
-              onChange={(e) =>
-                handleChange("idUsuario", Number(e.target.value) || null)
-              }
-              className={`mt-1 w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${
-                fieldErrors.idUsuario
-                  ? "border-red-400 focus:ring-red-300"
-                  : "border-gray-300 focus:ring-brand-light"
-              }`}
-            />
-            {fieldErrors.idUsuario && (
-              <p className="text-xs text-red-600 mt-1">
-                {fieldErrors.idUsuario}
-              </p>
-            )}
-          </div>
+
+        <div>
+        <label className="text-sm font-medium text-brand-dark">
+          Usuário (perfil CORRETOR)
+        </label>
+        <select
+          value={form.idUsuario ?? ""}
+          onChange={(e) =>
+            handleChange(
+              "idUsuario",
+              e.target.value ? Number(e.target.value) : null,
+            )
+          }
+          className={`mt-1 w-full rounded-lg border px-3 py-2 bg-white focus:outline-none focus:ring-2 ${
+            fieldErrors.idUsuario
+              ? "border-red-400 focus:ring-red-300"
+              : "border-gray-300 focus:ring-brand-light"
+          }`}
+        >
+          <option value="">Selecione um usuário</option>
+          {getUsuariosDisponiveis().map((u) => (
+            <option key={u.idUsuario} value={u.idUsuario}>
+              {u.nome} • {u.email}
+            </option>
+          ))}
+        </select>
+        {fieldErrors.idUsuario && (
+          <p className="text-xs text-red-600 mt-1">{fieldErrors.idUsuario}</p>
+        )}
+      </div>  
 
           <div>
             <label className="text-sm font-medium text-brand-dark">
