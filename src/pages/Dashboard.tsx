@@ -7,8 +7,7 @@ import corretorIcon from "../assets/segurados.png";
 import clientesIcon from "../assets/cliente.png";
 import { getAuth } from "../services/tokenStorage";
 
-const role = getAuth()?.role?.toUpperCase();
-const isAdmin = role === "ADMIN";
+
 
 type CardProps = {
   title: string;
@@ -27,6 +26,8 @@ function StatCard({ title, value }: CardProps) {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const role = getAuth()?.role?.toUpperCase();
+  const isAdmin = role === "ADMIN";
   const [counts, setCounts] = useState({
     corretores: 0,
     clientes: 0,

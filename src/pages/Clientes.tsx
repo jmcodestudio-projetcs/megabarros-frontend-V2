@@ -202,7 +202,7 @@ export default function Clientes() {
     setPage(1);
   }, [searchTerm]);
 
-  const role = getAuth()?.role;
+  const role = getAuth()?.role?.toUpperCase();
   const isCorretor = role === "CORRETOR";
   const canCreate = !isCorretor;
   const canEditAll = !isCorretor;

@@ -23,8 +23,29 @@ const initialForm: UsuarioCreatePayload = {
 
 const PERFIS = ["ADMIN", "USUARIO", "CORRETOR"];
 
+type ApiErrorResponse = {
+  error?: string;
+  message?: string;
+};
+
 function isEmailValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function getErrorMessageFromApi(err: unknown, fallback: string) {
+  const anyErr = err as any;
+  const data = anyErr?.response?.data as ApiErrorResponse | undefined;
+
+  if (data?.error === "weak_password") {
+    // backend: {"error":"weak_password","message":"Password needs special char"}
+    return "Senha fraca: a senha precisa conter ao menos 1 caractere especial (ex: ! @ # $ %).";
+  }
+
+  if (typeof data?.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  return fallback;
 }
 
 export default function Usuarios() {
@@ -76,8 +97,10 @@ export default function Usuarios() {
       try {
         const data = await listarUsuarios();
         setUsuarios(data);
-      } catch {
-        setError("Não foi possível carregar os usuários.");
+      } catch (err) {
+        setError(
+          getErrorMessageFromApi(err, "Não foi possível carregar os usuários."),
+        );
       } finally {
         setLoading(false);
       }
@@ -152,6 +175,9 @@ export default function Usuarios() {
   async function handleCriar(e: React.FormEvent) {
     e.preventDefault();
 
+    setError("");
+    setSuccess("");
+
     const payload: UsuarioCreatePayload = {
       nome: form.nome.trim(),
       email: form.email.trim(),
@@ -171,14 +197,17 @@ export default function Usuarios() {
       setUsuarios((prev) => [...prev, created]);
       setForm(initialForm);
       showSuccess("Usuário cadastrado com sucesso.");
-    } catch {
-      setError("Erro ao cadastrar usuário.");
+    } catch (err) {
+      setError(getErrorMessageFromApi(err, "Erro ao cadastrar usuário."));
     } finally {
       setIsSaving(false);
     }
   }
 
   function iniciarEdicao(u: UsuarioResponse) {
+    setError("");
+    setSuccess("");
+
     setEditId(u.idUsuario);
     setEditForm({
       nome: u.nome,
@@ -191,6 +220,9 @@ export default function Usuarios() {
   }
 
   async function salvarEdicao(id: number) {
+    setError("");
+    setSuccess("");
+
     const errors = validateUpdate(editForm);
     setEditErrors(errors);
     if (Object.values(errors).some((e) => e)) return;
@@ -203,8 +235,8 @@ export default function Usuarios() {
       );
       setEditId(null);
       showSuccess("Usuário atualizado com sucesso.");
-    } catch {
-      setError("Erro ao atualizar usuário.");
+    } catch (err) {
+      setError(getErrorMessageFromApi(err, "Erro ao atualizar usuário."));
     } finally {
       setUpdatingId(null);
     }
@@ -222,8 +254,8 @@ export default function Usuarios() {
           await excluirUsuario(id);
           setUsuarios((prev) => prev.filter((u) => u.idUsuario !== id));
           showSuccess("Usuário excluído com sucesso.");
-        } catch {
-          setError("Erro ao excluir usuário.");
+        } catch (err) {
+          setError(getErrorMessageFromApi(err, "Erro ao excluir usuário."));
         } finally {
           setDeletingId(null);
           setModal((prev) => ({ ...prev, open: false }));

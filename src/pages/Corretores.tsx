@@ -360,7 +360,7 @@ export default function Corretores() {
     async function loadUsuarios() {
       try {
         const data = await listarUsuarios()
-        setUsuarios(data.filter((u) => u.perfil === "CORRETOR"))
+        setUsuarios(data.filter((u) => u.perfil?.toUpperCase() === "CORRETOR"))
       } catch {
         setUsuarios([])
       }
